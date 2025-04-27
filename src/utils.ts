@@ -52,6 +52,9 @@ export async function processToolCalls<
 }): Promise<Message[]> {
   const lastMessage = messages[messages.length - 1];
   const parts = lastMessage.parts;
+  console.log("Processing tool calls for message:", JSON.stringify(lastMessage, null, 2));
+  console.log("Available executions:", Object.keys(executions));
+  
   if (!parts) return messages;
 
   const processedParts = await Promise.all(
@@ -61,10 +64,18 @@ export async function processToolCalls<
 
       const { toolInvocation } = part;
       const toolName = toolInvocation.toolName;
+      console.log(`Processing tool invocation for ${toolName}, state: ${toolInvocation.state}`);
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'result' state
-      if (!(toolName in executions) || toolInvocation.state !== "result")
+      if (!(toolName in executions)) {
+        console.log(`Tool ${toolName} not found in executions`);
         return part;
+      }
+      
+      if (toolInvocation.state !== "result") {
+        console.log(`Tool ${toolName} not in 'result' state, but in '${toolInvocation.state}' state`);
+        return part;
+      }
 
       let result: unknown;
 
@@ -74,17 +85,21 @@ export async function processToolCalls<
           !isValidToolName(toolName, executions) ||
           toolInvocation.state !== "result"
         ) {
+          console.log(`Tool ${toolName} validation failed`);
           return part;
         }
 
         const toolInstance = executions[toolName];
         if (toolInstance) {
+          console.log(`Executing tool ${toolName} with args:`, JSON.stringify(toolInvocation.args, null, 2));
           result = await toolInstance(toolInvocation.args, {
             messages: convertToCoreMessages(messages),
             toolCallId: toolInvocation.toolCallId,
           });
+          console.log(`Tool ${toolName} execution result:`, result);
         } else {
           result = "Error: No execute function found on tool";
+          console.error(`No execute function found for tool ${toolName}`);
         }
       } else if (toolInvocation.result === APPROVAL.NO) {
         result = "Error: User denied access to tool execution";
