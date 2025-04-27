@@ -370,7 +370,7 @@ export default function Chat() {
                 value={agentInput}
                 onChange={handleAgentInputChange}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
                     handleAgentSubmit(e as unknown as React.FormEvent);
                   }
