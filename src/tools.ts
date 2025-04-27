@@ -9,6 +9,17 @@ import type { Chat } from "./server";
 import { getCurrentAgent } from "agents";
 import { unstable_scheduleSchema } from "agents/schedule";
 
+// Type definitions for Context7
+interface SearchResult {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+interface SearchResponse {
+  results: SearchResult[];
+}
+
 /**
  * Weather information tool that requires human confirmation
  * When invoked, this will present a confirmation dialog to the user
@@ -110,6 +121,32 @@ const cancelScheduledTask = tool({
 });
 
 /**
+ * Context7 MCP tool to resolve library IDs
+ * Requires human confirmation before executing
+ */
+const resolveLibraryId = tool({
+  description: "Resolve a library name into a Context7-compatible library ID",
+  parameters: z.object({
+    libraryName: z.string().describe("Library name to search for")
+  }),
+  // Omitting execute function makes this tool require human confirmation
+});
+
+/**
+ * Context7 MCP tool to fetch library documentation
+ * Requires human confirmation before executing
+ */
+const getLibraryDocs = tool({
+  description: "Fetch up-to-date documentation for a library using Context7",
+  parameters: z.object({
+    libraryId: z.string().describe("Context7-compatible library ID (e.g., 'mongodb/docs', 'vercel/nextjs')"),
+    topic: z.string().optional().describe("Topic to focus documentation on (e.g., 'hooks', 'routing')"),
+    tokens: z.number().optional().describe("Maximum number of tokens of documentation to retrieve (default: 5000)")
+  }),
+  // Omitting execute function makes this tool require human confirmation
+});
+
+/**
  * Export all available tools
  * These will be provided to the AI model to describe available capabilities
  */
@@ -119,6 +156,8 @@ export const tools = {
   scheduleTask,
   getScheduledTasks,
   cancelScheduledTask,
+  resolveLibraryId,
+  getLibraryDocs,
 };
 
 /**
@@ -131,4 +170,92 @@ export const executions = {
     console.log(`Getting weather information for ${city}`);
     return `The weather in ${city} is sunny`;
   },
+
+  resolveLibraryId: async ({ libraryName }: { libraryName: string }) => {
+    console.log(`Resolving library ID for ${libraryName}`);
+    try {
+      const url = new URL("https://context7.com/api/v1/search");
+      url.searchParams.set("query", libraryName);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Failed to search libraries: ${response.status}`);
+        return `Failed to search for ${libraryName}: ${response.statusText}`;
+      }
+      
+      const data = await response.json() as SearchResponse;
+      if (!data.results || data.results.length === 0) {
+        return `No documentation libraries found matching '${libraryName}'`;
+      }
+      
+      // Format the results for display
+      const formattedResults = data.results.map((result: SearchResult) => {
+        return `Title: ${result.title}\nID: ${result.id}\nDescription: ${result.description || "No description available"}`;
+      }).join("\n\n");
+      
+      return `Available libraries for '${libraryName}':\n\n${formattedResults}`;
+    } catch (error) {
+      console.error("Error resolving library ID:", error);
+      return `Error searching for library '${libraryName}': ${error}`;
+    }
+  },
+  
+  getLibraryDocs: async ({ 
+    libraryId,
+    topic = "",
+    tokens = 5000
+  }: { 
+    libraryId: string,
+    topic?: string,
+    tokens?: number
+  }) => {
+    console.log(`Fetching documentation for ${libraryId}`);
+    try {
+      // Extract folders parameter if present in the ID
+      let folders = "";
+      let actualLibraryId = libraryId;
+      
+      if (libraryId.includes("?folders=")) {
+        const [id, foldersParam] = libraryId.split("?folders=");
+        actualLibraryId = id;
+        folders = foldersParam;
+      }
+      
+      // Ensure minimum token count
+      const actualTokens = tokens < 5000 ? 5000 : tokens;
+      
+      // Clean up library ID if it starts with a slash
+      if (actualLibraryId.startsWith("/")) {
+        actualLibraryId = actualLibraryId.slice(1);
+      }
+      
+      const url = new URL(`https://context7.com/api/v1/${actualLibraryId}`);
+      url.searchParams.set("tokens", actualTokens.toString());
+      url.searchParams.set("type", "txt");
+      
+      if (topic) url.searchParams.set("topic", topic);
+      if (folders) url.searchParams.set("folders", folders);
+      
+      const response = await fetch(url, {
+        headers: {
+          "X-Context7-Source": "docs-agent"
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Failed to fetch documentation: ${response.status}`);
+        return `Failed to fetch documentation for ${libraryId}: ${response.statusText}`;
+      }
+      
+      const text = await response.text();
+      if (!text || text === "No content available" || text === "No context data available") {
+        return `No documentation available for ${libraryId}`;
+      }
+      
+      return text;
+    } catch (error) {
+      console.error("Error fetching library documentation:", error);
+      return `Error fetching documentation for '${libraryId}': ${error}`;
+    }
+  }
 };
