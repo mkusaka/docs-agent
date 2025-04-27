@@ -52,9 +52,12 @@ export async function processToolCalls<
 }): Promise<Message[]> {
   const lastMessage = messages[messages.length - 1];
   const parts = lastMessage.parts;
-  console.log("Processing tool calls for message:", JSON.stringify(lastMessage, null, 2));
+  console.log(
+    "Processing tool calls for message:",
+    JSON.stringify(lastMessage, null, 2)
+  );
   console.log("Available executions:", Object.keys(executions));
-  
+
   if (!parts) return messages;
 
   const processedParts = await Promise.all(
@@ -64,16 +67,20 @@ export async function processToolCalls<
 
       const { toolInvocation } = part;
       const toolName = toolInvocation.toolName;
-      console.log(`Processing tool invocation for ${toolName}, state: ${toolInvocation.state}`);
+      console.log(
+        `Processing tool invocation for ${toolName}, state: ${toolInvocation.state}`
+      );
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'result' state
       if (!(toolName in executions)) {
         console.log(`Tool ${toolName} not found in executions`);
         return part;
       }
-      
+
       if (toolInvocation.state !== "result") {
-        console.log(`Tool ${toolName} not in 'result' state, but in '${toolInvocation.state}' state`);
+        console.log(
+          `Tool ${toolName} not in 'result' state, but in '${toolInvocation.state}' state`
+        );
         return part;
       }
 
@@ -91,7 +98,10 @@ export async function processToolCalls<
 
         const toolInstance = executions[toolName];
         if (toolInstance) {
-          console.log(`Executing tool ${toolName} with args:`, JSON.stringify(toolInvocation.args, null, 2));
+          console.log(
+            `Executing tool ${toolName} with args:`,
+            JSON.stringify(toolInvocation.args, null, 2)
+          );
           result = await toolInstance(toolInvocation.args, {
             messages: convertToCoreMessages(messages),
             toolCallId: toolInvocation.toolCallId,
