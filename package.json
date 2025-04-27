@@ -1,7 +1,7 @@
 {
-  "name": "cloudflare-agent-starter",
+  "name": "docs-agent",
   "version": "1.0.0",
-  "description": "",
+  "description": "A docs agent for several websites",
   "type": "module",
   "private": true,
   "scripts": {
