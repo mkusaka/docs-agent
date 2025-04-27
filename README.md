@@ -26,13 +26,13 @@ A starter template for building AI-powered chat agents using Cloudflare's Agent 
 1. Create a new project:
 
 ```bash
-npm create cloudflare@latest -- --template cloudflare/agents-starter
+pnpm create cloudflare@latest -- --template cloudflare/agents-starter
 ```
 
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Set up your environment:
@@ -46,13 +46,13 @@ OPENAI_API_KEY=your_openai_api_key
 4. Run locally:
 
 ```bash
-npm start
+pnpm start
 ```
 
 5. Deploy:
 
 ```bash
-npm run deploy
+pnpm run deploy
 ```
 
 ## Project Structure
@@ -140,103 +140,11 @@ The starting [`server.ts`](https://github.com/cloudflare/agents-starter/blob/mai
 For example, to use the [`workers-ai-provider`](https://sdk.vercel.ai/providers/community-providers/cloudflare-workers-ai), install the package:
 
 ```sh
-npm install workers-ai-provider
+pnpm install workers-ai-provider
 ```
 
 Add an `ai` binding to `wrangler.jsonc`:
 
-```jsonc
-// rest of file
-  "ai": {
-    "binding": "AI"
-  }
-// rest of file
 ```
 
-Replace the `@ai-sdk/openai` import and usage with the `workers-ai-provider`:
-
-```diff
-// server.ts
-// Change the imports
-- import { openai } from "@ai-sdk/openai";
-+ import { createWorkersAI } from 'workers-ai-provider';
-
-// Create a Workers AI instance
-+ const workersai = createWorkersAI({ binding: env.AI });
-
-// Use it when calling the streamText method (or other methods)
-// from the ai-sdk
-- const model = openai("gpt-4o-2024-11-20");
-+ const model = workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b")
 ```
-
-Commit your changes and then run the `agents-starter` as per the rest of this README.
-
-### Modifying the UI
-
-The chat interface is built with React and can be customized in `app.tsx`:
-
-- Modify the theme colors in `styles.css`
-- Add new UI components in the chat container
-- Customize message rendering and tool confirmation dialogs
-- Add new controls to the header
-
-### Example Use Cases
-
-1. **Customer Support Agent**
-
-   - Add tools for:
-     - Ticket creation/lookup
-     - Order status checking
-     - Product recommendations
-     - FAQ database search
-
-2. **Development Assistant**
-
-   - Integrate tools for:
-     - Code linting
-     - Git operations
-     - Documentation search
-     - Dependency checking
-
-3. **Data Analysis Assistant**
-
-   - Build tools for:
-     - Database querying
-     - Data visualization
-     - Statistical analysis
-     - Report generation
-
-4. **Personal Productivity Assistant**
-
-   - Implement tools for:
-     - Task scheduling with flexible timing options
-     - One-time, delayed, and recurring task management
-     - Task tracking with reminders
-     - Email drafting
-     - Note taking
-
-5. **Scheduling Assistant**
-   - Build tools for:
-     - One-time event scheduling using specific dates
-     - Delayed task execution (e.g., "remind me in 30 minutes")
-     - Recurring tasks using cron patterns
-     - Task payload management
-     - Flexible scheduling patterns
-
-Each use case can be implemented by:
-
-1. Adding relevant tools in `tools.ts`
-2. Customizing the UI for specific interactions
-3. Extending the agent's capabilities in `server.ts`
-4. Adding any necessary external API integrations
-
-## Learn More
-
-- [`agents`](https://github.com/cloudflare/agents/blob/main/packages/agents/README.md)
-- [Cloudflare Agents Documentation](https://developers.cloudflare.com/agents/)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-
-## License
-
-MIT
